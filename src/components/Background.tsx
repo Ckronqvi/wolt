@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback } from "react";
 
 type Position = {
   x: number;
@@ -44,7 +44,8 @@ const BubbleGradient = ({
       loopBreaker++;
       newPosition = getRandomPosition();
       isTooClose = coordinates.some(
-        (coord) => calculateDistance(newPosition, coord) < BUBBLE_DISTANCE_THRESHOLD
+        (coord) =>
+          calculateDistance(newPosition, coord) < BUBBLE_DISTANCE_THRESHOLD,
       );
     } while (isTooClose && loopBreaker < BUBBLE_DISTANCE_THRESHOLD);
 
@@ -83,15 +84,40 @@ const AnimatedGradientBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 -z-50 pointer-events-none overflow-hidden bg-[#00C5EA]">
+    <div className="fixed inset-0 -z-50 pointer-events-none overflow-hidden bg-[#00aac9]">
       <div className="absolute inset-0 animate-bubble">
-          <div className="absolute inset-0">
-              <BubbleGradient color="#c1faff" baseDelay={1} coordinates={coordinates.current} addCoordinate={addCoordinate} />
-              <BubbleGradient color="#c1faff" baseDelay={2} coordinates={coordinates.current} addCoordinate={addCoordinate} />
-              <BubbleGradient color="#e6f4f1" baseDelay={4} coordinates={coordinates.current} addCoordinate={addCoordinate} />
-              <BubbleGradient color="#c1faff" baseDelay={1} coordinates={coordinates.current} addCoordinate={addCoordinate} />
-              <BubbleGradient color="#c1faff" baseDelay={3} coordinates={coordinates.current} addCoordinate={addCoordinate} />
-          </div>
+        <div className="absolute inset-0">
+          <BubbleGradient
+            color="#ffffff"
+            baseDelay={1}
+            coordinates={coordinates.current}
+            addCoordinate={addCoordinate}
+          />
+          <BubbleGradient
+            color="#ffe9cf"
+            baseDelay={2}
+            coordinates={coordinates.current}
+            addCoordinate={addCoordinate}
+          />
+          <BubbleGradient
+            color="#e6f4f1"
+            baseDelay={4}
+            coordinates={coordinates.current}
+            addCoordinate={addCoordinate}
+          />
+          <BubbleGradient
+            color="#000000"
+            baseDelay={1}
+            coordinates={coordinates.current}
+            addCoordinate={addCoordinate}
+          />
+          <BubbleGradient
+            color="#8772c8"
+            baseDelay={3}
+            coordinates={coordinates.current}
+            addCoordinate={addCoordinate}
+          />
+        </div>
       </div>
     </div>
   );
