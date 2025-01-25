@@ -1,6 +1,6 @@
 import { useMemo, useRef, useCallback } from "react";
 
-type Position = {
+interface Position {
   x: number;
   y: number;
 };
@@ -84,35 +84,35 @@ const AnimatedGradientBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 -z-50 pointer-events-none overflow-hidden bg-[#00aac9]">
+    <div className="fixed inset-0 -z-50 pointer-events-none overflow-hidden bg-[#00C5EA]">
       <div className="absolute inset-0 animate-bubble">
         <div className="absolute inset-0">
           <BubbleGradient
-            color="#ffffff"
+            color="#fff"
             baseDelay={1}
             coordinates={coordinates.current}
             addCoordinate={addCoordinate}
           />
           <BubbleGradient
-            color="#ffe9cf"
+            color="#fff"
             baseDelay={2}
             coordinates={coordinates.current}
             addCoordinate={addCoordinate}
           />
           <BubbleGradient
-            color="#e6f4f1"
+            color="#fff"
             baseDelay={4}
             coordinates={coordinates.current}
             addCoordinate={addCoordinate}
           />
           <BubbleGradient
-            color="#000000"
+            color="#fff"
             baseDelay={1}
             coordinates={coordinates.current}
             addCoordinate={addCoordinate}
           />
           <BubbleGradient
-            color="#8772c8"
+            color="#fff"
             baseDelay={3}
             coordinates={coordinates.current}
             addCoordinate={addCoordinate}

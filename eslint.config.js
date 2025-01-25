@@ -9,9 +9,10 @@ export default tseslint.config(
   { ignores: ["dist"] },
   {
     extends: [
-      js.configs.recommendedTypeChecked,
+      js.configs.recommended,
+      tseslint.configs.recommendedTypeChecked,
       tseslint.configs.stylisticTypeChecked,
-      ...tseslint.configs.recommended,
+      tseslint.configs.recommended,
     ],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -26,6 +27,11 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       react,
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,

@@ -1,4 +1,7 @@
-export const getLocationAsync = (): Promise<{ latitude: number; longitude: number }> => {
+export const getLocationAsync = (): Promise<{
+  latitude: string;
+  longitude: string;
+}> => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not supported by your browser."));
@@ -6,10 +9,18 @@ export const getLocationAsync = (): Promise<{ latitude: number; longitude: numbe
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          resolve({ latitude, longitude });
+
+          const latitudeString = latitude.toString();
+          const longitudeString = longitude.toString();
+
+          resolve({ latitude: latitudeString, longitude: longitudeString });
         },
         (_error) => {
-          reject(new Error("Unable to retrieve location. Please check your permissions."));
+          reject(
+            new Error(
+              `Unable to retrieve location. Please check your permissions. Error: ${_error.message}`
+            ),
+          );
         },
         {
           enableHighAccuracy: true,

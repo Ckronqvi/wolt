@@ -1,16 +1,32 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useState } from "react";
 import { getLocationAsync } from "../util/getLocationAsync";
-import Loader from "./Loader.tsx";
+import Spinner from "./Spinner.tsx";
+import { IPriceData } from "../App.tsx";
+import { fetchStaticData, fetchDynamicData } from "../services/venueAPI.ts";
+import PriceCalculator from "../util/PriceCalculator.ts";
+import FormField from "./FormField";
+import { formFields } from "../config/formConfig";
+import { parseCoordinates } from "../util/parseCoordinates.ts";
 
-interface IFormInput {
+export interface IFormInput {
   venueSlug: string;
   cartValue: number;
-  latitude: number;
-  longitude: number;
+  userLatitude: string;
+  userLongitude: string;
 }
 
-export default function MainForm() {
+interface MainFormProps {
+  setPriceData: (data: IPriceData | null) => void;
+  setFetchIsLoading: (fetchIsLoading: boolean) => void;
+  fetchIsLoading: boolean;
+}
+
+export default function MainForm({
+  setPriceData,
+  setFetchIsLoading,
+  fetchIsLoading,
+}: MainFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const {
     register,
@@ -19,119 +35,161 @@ export default function MainForm() {
     formState: { errors },
   } = useForm<IFormInput>();
 
-  const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    console.log(data);
+  const onSubmit: SubmitHandler<IFormInput> = async (data): Promise<void> => {
+      setFetchIsLoading(true);
+      try {
+        const staticResult = await fetchStaticData(data.venueSlug);
+        if (!staticResult.success) {
+          setPriceData({
+            cartValue: 0,
+            deliveryFee: 0,
+            deliveryDistance: 0,
+            smallOrderSurcharge: 0,
+            errorMsg: staticResult.error,
+          });
+          return;
+        }
+        const [lon, lat] = staticResult.data;
+
+        const dynamicResult = await fetchDynamicData(data.venueSlug);
+        if (!dynamicResult.success) {
+          setPriceData({
+            cartValue: 0,
+            deliveryFee: 0,
+            deliveryDistance: 0,
+            smallOrderSurcharge: 0,
+            errorMsg: dynamicResult.error,
+          });
+          return;
+        }
+        const { minCartValue, basePrice, distanceRanges } = dynamicResult.data;
+        const cartValueCents = data.cartValue * 100;
+        const latitudeNum = parseCoordinates(data.userLatitude, "lat");
+        const longitudeNum = parseCoordinates(data.userLongitude, "lon");
+
+        // Check if coordinates are valid (they should be at this point).
+        if (null === latitudeNum || null === longitudeNum) {
+          setPriceData({
+            cartValue: 0,
+            smallOrderSurcharge: 0,
+            deliveryFee: 0,
+            deliveryDistance: 0,
+            errorMsg: "Invalid coordinates.",
+          });
+          return;
+        }
+
+        const smallOrderSurcharge =
+          PriceCalculator.calculateSmallOrderSurcharge(
+            cartValueCents,
+            minCartValue
+          );
+        const userDistance = PriceCalculator.haversineFormula(
+          latitudeNum,
+          longitudeNum,
+          lat,
+          lon
+        );
+        const deliveryFee = PriceCalculator.calculateDeliveryFee(
+          userDistance,
+          basePrice,
+          distanceRanges
+        );
+
+        if (deliveryFee === null) {
+          const maxDistance = distanceRanges.at(-1)?.min;
+          setPriceData({
+            cartValue: 0,
+            smallOrderSurcharge: 0,
+            deliveryFee: 0,
+            deliveryDistance: 0,
+            errorMsg: `Delivery not possible for the given distance (${userDistance.toFixed(0)} m). Maximum distance is ${maxDistance} m.`,
+          });
+          return;
+        }
+
+        setPriceData({
+          cartValue: cartValueCents,
+          smallOrderSurcharge,
+          deliveryFee,
+          deliveryDistance: userDistance,
+          errorMsg: "",
+        });
+      } catch {
+        setPriceData({
+          cartValue: 0,
+          smallOrderSurcharge: 0,
+          deliveryFee: 0,
+          deliveryDistance: 0,
+          errorMsg: "Error calculating price. Try again.",
+        });
+      } finally {
+        setFetchIsLoading(false);
+      }
   };
 
-  const handleGetLocation = async () => {
-    try {
-      setIsLoading(true);
-      const { latitude, longitude } = await getLocationAsync();
-      setValue("latitude", latitude);
-      setValue("longitude", longitude);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred.";
-      console.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGetLocation = (): void => {
+    void (async () => {
+      try {
+        setIsLoading(true);
+        const { latitude, longitude } = await getLocationAsync();
+        setValue("userLatitude", latitude);
+        setValue("userLongitude", longitude);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : "Unknown error");
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   };
 
   return (
-    <div className="w-full lg:w-1/2 mx-auto p-8 bg-[#d7e9e4]/20 rounded-lg">
+    <div className="w-full xl:max-w-sm mx-auto p-8 bg-[#fff] rounded-lg shadow-lg">
       <h2 className="text-xl font-bold text-center mb-8">Calculator</h2>
-      <form onSubmit={handleSubmit(onSubmit)} aria-labelledby="form-header">
-        {[
-          {
-            id: "venueSlug",
-            type: "text",
-            label: "Venue Slug",
-            placeholder: "Enter venue slug",
-            validation: { required: "Venue slug is required" },
-            error: errors.venueSlug,
-          },
-          {
-            id: "cartValue",
-            type: "number",
-            label: "Cart Value",
-            placeholder: "Enter cart value",
-            validation: {
-              required: "Cart value is required",
-              min: { value: 0, message: "Cart value must be at least 0" },
-            },
-            error: errors.cartValue,
-          },
-          {
-            id: "latitude",
-            type: "number",
-            label: "User Latitude",
-            placeholder: "Enter latitude",
-            validation: {
-              required: "Latitude is required",
-              valueAsNumber: true,
-            },
-            error: errors.latitude,
-            disabled: isLoading,
-          },
-          {
-            id: "longitude",
-            type: "number",
-            label: "User Longitude",
-            placeholder: "Enter longitude",
-            validation: {
-              required: "Longitude is required",
-              valueAsNumber: true,
-            },
-            error: errors.longitude,
-            disabled: isLoading,
-          },
-        ].map(({ id, type, label, validation, error, disabled }) => (
-          <div className="relative mb-8" key={id}>
-            <input
-              id={id}
-              type={type}
-              placeholder=" "
-              className="peer w-full bg-transparent p-3 border-b border-gray-400 focus:outline-none focus:ring-0 focus:border-black"
-              {...register(id as keyof IFormInput, validation)}
-              aria-invalid={error ? "true" : "false"}
-              aria-describedby={`${id}Error`}
-              disabled={disabled}
-            />
-            <label
-              htmlFor={id}
-              className="absolute left-1 text-[#7f2d00] text-sm -top-4 transition-all duration-200 pointer-events-none  peer-placeholder-shown:top-4 peer-placeholder-shown:text-lg peer-placeholder-shown:text-black focus:text-sm peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#7f2d00]"
-            >
-              {label}
-            </label>
-            {error && (
-              <span id={`${id}Error`} className="text-red-500 text-sm">
-                {error.message}
-              </span>
-            )}
-          </div>
+      <form onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
+        {formFields.map((field) => (
+          <FormField
+            key={field.id}
+            id={field.id}
+            type={field.type}
+            label={field.label}
+            validation={field.validation}
+            error={errors[field.id]}
+            register={register}
+            disabled={field.id.includes("user") && isLoading} // userLatitude and userLongitude
+          />
         ))}
 
-        <button
-          type="button"
-          onClick={handleGetLocation}
-          className="w-full bg-[#eee8a9]/40 hover:bg-[#f9f871]/40 text-black p-3 rounded-lg mt-0 mb-6 font-extrabold"
-        >
-          Get Location
-        </button>
-        <div className="mb-4">
+        <div className="flex justify-center">
+          <button
+            type="button"
+            data-testid="getLocation"
+            data-test-id="getLocation"
+            onClick={handleGetLocation}
+            aria-label="Get location"
+            className="w-fit text-black p-3 mt-0 mb-6 font-extrabold hover:scale-105 transition-transform duration-100 ease-in-out"
+          >
+            Get Location
+          </button>
+        </div>
+        <div className="mb-4 flex justify-center">
           <button
             type="submit"
-            className="w-full bg-[#eee8a9]/40 hover:bg-[#f9f871]/40 p-3 rounded-lg text-black font-extrabold mt-10"
+            aria-label="Submit"
+            className="w-full max-w-xs border border-black p-3 text-black font-extrabold mt-10 relative overflow-hidden bg-white transition-all duration-500 hover:text-white group z-10 uppercase"
+            data-test-id="submit"
+            data-testid="submit"
+            disabled={fetchIsLoading}
           >
-            Submit
+            submit
+            <span className="absolute inset-0 bg-black transition-transform duration-200 -translate-x-full group-hover:translate-x-0 -z-10"></span>
           </button>
         </div>
       </form>
 
       {isLoading && (
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center -z-10">
-          <Loader />
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center z-20 pointer-events-none">
+          <Spinner />
         </div>
       )}
     </div>
