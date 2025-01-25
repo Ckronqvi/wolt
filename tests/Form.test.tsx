@@ -14,9 +14,7 @@ describe("Form Integration Test", () => {
       value: scrollIntoViewMock,
     });
 
-    render(
-      <App/>
-    );
+    render(<App />);
 
     // Perform the test steps (filling the form, clicking submit, etc.)
     const venueSlugInput = screen.getByTestId("venueSlug");
@@ -32,21 +30,21 @@ describe("Form Integration Test", () => {
     const submitButton = screen.getByTestId("submit");
     await userEvent.click(submitButton);
 
-
     // Wait for the result to appear
-    await waitFor(() => {
-      const totalPrice = screen.getByTestId("totalPrice");
-      expect(totalPrice).toHaveTextContent("11.90 €");
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const totalPrice = screen.getByTestId("totalPrice");
+        expect(totalPrice).toHaveTextContent("11.90 €");
+      },
+      { timeout: 3000 },
+    );
 
     // Ensure scrollIntoView was called during the test
     expect(scrollIntoViewMock).toHaveBeenCalled();
   });
 
   it("displays an error message when the form is submitted with an invalid slug", async () => {
-    render(
-      <App/>
-    );
+    render(<App />);
 
     const venueSlugInput = screen.getByTestId("venueSlug");
     const cartValueInput = screen.getByTestId("cartValue");
@@ -62,31 +60,33 @@ describe("Form Integration Test", () => {
     const submitButton = screen.getByTestId("submit");
     await userEvent.click(submitButton);
 
-    await waitFor(() => {
-      const errorMsg = screen.getByTestId("errorMsg");
-      expect(errorMsg).toHaveTextContent("Oops... Something went wrong");
-    });
+    await waitFor(
+      () => {
+        const errorMsg = screen.getByTestId("errorMsg");
+        expect(errorMsg).toHaveTextContent("Oops... Something went wrong");
+      },
+      { timeout: 3000 },
+    );
 
     // invalid cart value (-1)
     await userEvent.clear(cartValueInput);
     await userEvent.type(cartValueInput, "-1");
     await userEvent.click(submitButton);
-     await waitFor(() => {
+    await waitFor(() => {
       const cartValueError = screen.getByText("Cart value must be at least 0");
       expect(cartValueError).toBeInTheDocument();
     });
-    
+
     // invalid cart value (-1aa)
     await userEvent.type(cartValueInput, "aa");
-    const cartValueError = screen.getByText("Please enter a valid number. Use a dot (.) as the decimal separator");
+    const cartValueError = screen.getByText(
+      "Please enter a valid number. Use a dot (.) as the decimal separator",
+    );
     expect(cartValueError).toBeInTheDocument();
-
   });
 
   it("displays an error message when the form is submitted with an 10.0000, 20.0000 as coordinates (too far away)", async () => {
-    render(
-      <App/>
-    );
+    render(<App />);
 
     const venueSlugInput = screen.getByTestId("venueSlug");
     const cartValueInput = screen.getByTestId("cartValue");
@@ -102,9 +102,13 @@ describe("Form Integration Test", () => {
     const submitButton = screen.getByTestId("submit");
     await userEvent.click(submitButton);
 
-    await waitFor(() => {
-      const errorMsg = screen.getByTestId("errorMsg");
-      expect(errorMsg).toHaveTextContent("Oops... Something went wrong");
-    });
+    await waitFor(
+      () => {
+        const errorMsg = screen.getByTestId("errorMsg");
+        expect(errorMsg).toHaveTextContent("Oops... Something went wrong");
+      },
+      { timeout: 3000 },
+    );
   });
 });
+
